@@ -1,4 +1,4 @@
-//! Signing keyring. Presently specialized for Ed25519.
+//! Signing keyring. Currently specialized for Ed25519.
 
 pub mod ecdsa;
 pub mod ed25519;
@@ -6,13 +6,9 @@ pub mod format;
 pub mod providers;
 
 pub use self::{format::Format, providers::SigningProvider};
-use crate::{
-    chain,
-    config::provider::ProviderConfig,
-    error::{Error, ErrorKind::*},
-    prelude::*,
-    Map,
-};
+use crate::{chain, config::provider::ProviderConfig, Map, fortanixdsm_req};
+use crate::error::{Error, ErrorKind::*};
+use crate::prelude::*;
 use tendermint::{account, TendermintKey};
 
 /// File encoding for software-backed secret keys
@@ -40,7 +36,7 @@ impl KeyRing {
         }
     }
 
-    /// Add na ECDSA key to the keyring, returning an error if we already have a
+    /// Add an ECDSA key to the keyring, returning an error if we already have a
     /// signer registered for the given public key
     pub fn add_ecdsa(&mut self, signer: ecdsa::Signer) -> Result<(), Error> {
         let provider = signer.provider();
@@ -150,7 +146,7 @@ impl KeyRing {
     }
 
     /// Sign a message using the secret key associated with the given public key
-    /// (if it is in our keyring)
+    /// (if it is in our keyring), by original logic only one key is to be expected
     pub fn sign_ed25519(
         &self,
         public_key: Option<&TendermintKey>,
@@ -171,23 +167,38 @@ impl KeyRing {
                 }
             }
         };
-
         signer.sign(msg)
+    }
+    /// Sign a message using the secret key associated with the given public key
+    /// (if it is in our keyring), using the plugin.
+    /// By original logic only one key is to be expected
+    pub fn sign_with_plugin(
+        &self,
+        req: &fortanixdsm_req::PluginRequest,
+        public_key :Option<&TendermintKey>
+    )->Result<ed25519::Signature, Error>
+        {
+        let signer = match public_key {
+            Some(public_key) => self.ed25519_keys.get(public_key).ok_or_else(|| {
+                format_err!(InvalidKey, "not in keyring: {}", public_key.to_bech32(""))
+            })?,
+            None => {
+                let mut vals = self.ed25519_keys.values();
+
+                if vals.len() > 1 {
+                    fail!(SigningError, "expected only one key in keyring");
+                } else {
+                    vals.next()
+                        .ok_or_else(|| format_err!(InvalidKey, "keyring is empty"))?
+                }
+            }
+        };
+        signer.plugin_sign(req)
     }
 }
 
 /// Initialize the keyring from the configuration file
 pub fn load_config(registry: &mut chain::Registry, config: &ProviderConfig) -> Result<(), Error> {
-    #[cfg(feature = "softsign")]
-    providers::softsign::init(registry, &config.softsign)?;
-
-    #[cfg(feature = "yubihsm")]
-    providers::yubihsm::init(registry, &config.yubihsm)?;
-
-    #[cfg(feature = "ledger")]
-    providers::ledgertm::init(registry, &config.ledgertm)?;
-
-    #[cfg(feature = "fortanixdsm")]
     providers::fortanixdsm::init(registry, &config.fortanixdsm)?;
 
     Ok(())

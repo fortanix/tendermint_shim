@@ -19,6 +19,9 @@ pub struct FortanixDsmConfig {
     /// List of signing keys
     #[serde(default)]
     pub signing_keys: Vec<SigningKeyConfig>,
+
+    /// plugin UUID string
+    pub plugin_id: Option<String>
 }
 
 /// Signing key configuration

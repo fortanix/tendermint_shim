@@ -1,64 +1,57 @@
 [package]
-name = "tmkms"
+name = "shim"
 description = """
-Tendermint Key Management System: provides isolated, optionally HSM-backed
-signing key management for Tendermint applications including validators,
-oracles, IBC relayers, and other transaction signing applications
+Shim for Fortanixdsm Ignite One Time Signer plugin
 """
-version = "0.12.0"
-authors = ["Tony Arcieri <tony@iqlusion.io>", "Ismail Khoffi <Ismail.Khoffi@gmail.com>"]
+version = "1.0.0"
+authors = [""]
 license = "Apache-2.0"
-repository = "https://github.com/iqlusioninc/tmkms/"
+repository = ""
 readme = "README.md"
 categories = ["cryptography::cryptocurrencies"]
-keywords = ["cosmos", "ed25519", "kms", "key-management", "yubihsm"]
+keywords = ["cosmos", "ed25519", "kms", "key-management"]
 edition = "2021"
 rust-version = "1.56"
-
+[[bin]]
+name = "shim"
+path = "src/bin/shim/main.rs"
 [dependencies]
 abscissa_core = "0.6"
-abscissa_tokio = { version = "0.6", optional = true }
 bytes_v0_5 = { version = "0.5", package = "bytes" }
 bytes = "1"
+base64 = "0.13.0"
 chrono = "0.4"
 clap = "3"
-cosmrs = "0.7"
+cosmrs = "0.5"
 ed25519-dalek = "1"
-elliptic-curve = { version = "0.11.12", features = ["pkcs8"], optional = true }
+elliptic-curve = { version = "0.11.12", features = ["pkcs8"] }
 eyre = "0.6"
 getrandom = "0.2"
-hkd32 = { version = "0.6", default-features = false, features = ["mnemonic"] }
 hkdf = "0.11"
-hyper = { version = "0.14", optional = true }
-hyper-rustls = { version = "0.23", optional = true, features = ["webpki-roots"] }
 k256 = { version = "0.10", features = ["ecdsa", "sha256"] }
-ledger = { version = "0.2", optional = true }
 once_cell = "1.5"
-prost = "0.10"
+prost = "0.9"
 prost-amino = "0.6"
 prost-amino-derive = "0.6"
-prost-derive = "0.10"
+prost-derive = "0.9"
 rand_core = { version = "0.6", features = ["std"] }
-rpassword = { version = "6", optional = true }
-sdkms = { version = "0.4", optional = true }
+sdkms = { version = "0.4.0" }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
 sha2 = "0.9"
 signature = { version = "1.3", features = ["std"] }
-stdtx = { version = "0.6", optional = true }
 subtle = "2"
 subtle-encoding = { version = "0.5", features = ["bech32-preview"] }
 tempfile = "3"
-tendermint = { version = "0.23.7", features = ["secp256k1"] }
-tendermint-config = "0.23.7"
-tendermint-rpc = { version = "0.23.7", optional = true, features = ["http-client"] }
-tendermint-proto = "0.23.7"
-tendermint-p2p = { version = "0.23.7", features = ["amino"] }
+tendermint = { version = "0.23.5", features = ["secp256k1"] }
+tendermint-config = "0.23.5"
+tendermint-rpc = { version = "0.23.5", optional = true, features = ["http-client"] }
+tendermint-proto = "0.23.5"
+tendermint-p2p = { version = "0.23.5", features = ["amino"] }
 thiserror = "1"
-url = { version = "2.2.2", features = ["serde"], optional = true }
-uuid = { version = "0.8.2", features = ["serde"], optional = true }
+url = { version = "2.2.2", features = ["serde"]}
+uuid = { version = "0.8.2", features = ["serde"]}
 wait-timeout = "0.2"
-yubihsm = { version = "0.40", features = ["secp256k1", "setup", "usb"], optional = true }
 zeroize = "1"
 
 [dev-dependencies]
@@ -66,12 +59,6 @@ abscissa_core = { version = "0.6", features = ["testing"] }
 byteorder = "1"
 rand = "0.7"
 
-[features]
-softsign = []
-tx-signer = ["abscissa_tokio", "hyper", "hyper-rustls", "stdtx", "tendermint-rpc"]
-yubihsm-mock = ["yubihsm/mockhsm"]
-yubihsm-server = ["yubihsm/http-server", "rpassword"]
-fortanixdsm = ["elliptic-curve", "sdkms", "url", "uuid"]
 
 # Enable integer overflow checks in release builds for security reasons
 [profile.release]

@@ -1,4 +1,4 @@
-//! Tendermint KMS configuration file networks
+//! Shim configuration file networks
 
 use crate::prelude::*;
 use std::{

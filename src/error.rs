@@ -38,18 +38,13 @@ pub enum ErrorKind {
     CryptoError,
 
     /// Fortanix DSM related error
-    #[cfg(feature = "fortanixdsm")]
+    
     #[error("Fortanix DSM error")]
     FortanixDsmError,
 
     /// Error running a subcommand to update chain state
     #[error("subcommand hook failed")]
     HookError,
-
-    /// Error making an HTTP request
-    #[cfg(feature = "tx-signer")]
-    #[error("HTTP error")]
-    HttpError,
 
     /// Malformatted or otherwise invalid cryptographic key
     #[error("invalid key")]
@@ -87,11 +82,6 @@ pub enum ErrorKind {
     #[error("signing operation failed")]
     SigningError,
 
-    /// Error parsing/serializing a StdTx
-    #[cfg(feature = "tx-signer")]
-    #[error("stdtx error")]
-    StdtxError,
-
     /// Errors originating in the Tendermint crate
     #[error("Tendermint error")]
     TendermintError,
@@ -99,11 +89,6 @@ pub enum ErrorKind {
     /// Verification operation failed
     #[error("verification failed")]
     VerificationError,
-
-    /// YubiHSM-related errors
-    #[cfg(feature = "yubihsm")]
-    #[error("YubiHSM error")]
-    YubihsmError,
 }
 
 impl ErrorKind {
@@ -164,20 +149,6 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-#[cfg(feature = "tx-signer")]
-impl From<hyper::Error> for Error {
-    fn from(other: hyper::Error) -> Self {
-        ErrorKind::HttpError.context(other).into()
-    }
-}
-
-#[cfg(feature = "tx-signer")]
-impl From<hyper::http::Error> for Error {
-    fn from(other: hyper::http::Error) -> Self {
-        ErrorKind::HttpError.context(other).into()
-    }
-}
-
 impl From<io::Error> for Error {
     fn from(other: io::Error) -> Self {
         ErrorKind::IoError.context(other).into()
@@ -220,22 +191,8 @@ impl From<serde_json::error::Error> for Error {
     }
 }
 
-#[cfg(feature = "tx-signer")]
-impl From<stdtx::error::Report> for Error {
-    fn from(other: stdtx::error::Report) -> Self {
-        ErrorKind::StdtxError.context(other).into()
-    }
-}
-
 impl From<tendermint::Error> for Error {
     fn from(other: tendermint::error::Error) -> Self {
-        ErrorKind::TendermintError.context(other).into()
-    }
-}
-
-#[cfg(feature = "tx-signer")]
-impl From<tendermint_rpc::Error> for Error {
-    fn from(other: tendermint_rpc::error::Error) -> Self {
         ErrorKind::TendermintError.context(other).into()
     }
 }
@@ -243,5 +200,17 @@ impl From<tendermint_rpc::Error> for Error {
 impl From<chain::state::StateError> for Error {
     fn from(other: chain::state::StateError) -> Self {
         ErrorKind::DoubleSign.context(other).into()
+    }
+}
+
+impl From<signature::Error> for Error{
+    fn from(other: signature::Error)-> Self {
+        ErrorKind::SigningError.context(other).into()
+    }
+}
+
+impl From<sdkms::Error> for Error{
+    fn from(other: sdkms::Error)-> Self {
+        ErrorKind::SerializationError.context(other).into()
     }
 }

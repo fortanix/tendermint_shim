@@ -1,13 +1,14 @@
-# Ignite One-time Signer Shim
+# Fortanix Tendermint One-time Signer Shim
 version 1.0
 
 ## Short Description
-The Ignite One Time Signer shim acts as translational layer between your Tendermint validators and the Ignite One Time Signer Plugin. It handles RPC communication from the validator node and relays it to plugin using REST API's.
+The Fortanix Tendermint One Time Signer shim acts as translational layer between your Tendermint validators and the Fortanix Tendermint One Time Signer Plugin. It handles RPC communication from the validator node and relays it to plugin using REST API's.
 
 This is a fork of [Tendermint KMS](https://github.com/iqlusioninc/tmkms), Key Management System for [Tendermint] applications such as
 [Cosmos Validators].
 
 ## Production Fortanix DSM setup
+### Compiling
 `shim` can be compiled directly from the git repository source code using the
 following method.
 

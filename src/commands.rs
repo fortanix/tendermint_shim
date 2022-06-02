@@ -1,23 +1,8 @@
 //! Subcommands of the `tmkms` command-line application
 
 pub mod init;
-#[cfg(feature = "ledger")]
-pub mod ledger;
-#[cfg(feature = "softsign")]
-pub mod softsign;
 pub mod start;
-pub mod version;
-#[cfg(feature = "yubihsm")]
-pub mod yubihsm;
-
-#[cfg(feature = "ledger")]
-pub use self::ledger::LedgerCommand;
-#[cfg(feature = "softsign")]
-pub use self::softsign::SoftsignCommand;
-#[cfg(feature = "yubihsm")]
-pub use self::yubihsm::YubihsmCommand;
-
-pub use self::{init::InitCommand, start::StartCommand, version::VersionCommand};
+pub use self::{init::InitCommand, start::StartCommand};
 
 use crate::config::{KmsConfig, CONFIG_ENV_VAR, CONFIG_FILE_NAME};
 use abscissa_core::{Command, Configurable, Runnable};
@@ -30,26 +15,9 @@ pub enum KmsCommand {
     /// initialize KMS configuration
     Init(InitCommand),
 
-    /// subcommands for Ledger
-    #[cfg(feature = "ledger")]
-    #[clap(subcommand)]
-    Ledger(LedgerCommand),
-
-    /// subcommands for software signer
-    #[cfg(feature = "softsign")]
-    #[clap(subcommand)]
-    Softsign(SoftsignCommand),
-
     /// start the KMS application"
     Start(StartCommand),
 
-    /// display the version
-    Version(VersionCommand),
-
-    /// subcommands for YubiHSM2
-    #[cfg(feature = "yubihsm")]
-    #[clap(subcommand)]
-    Yubihsm(YubihsmCommand),
 }
 
 impl KmsCommand {
@@ -57,8 +25,6 @@ impl KmsCommand {
     pub fn verbose(&self) -> bool {
         match self {
             KmsCommand::Start(run) => run.verbose,
-            #[cfg(feature = "yubihsm")]
-            KmsCommand::Yubihsm(yubihsm) => yubihsm.verbose(),
             _ => false,
         }
     }
@@ -70,10 +36,6 @@ impl Configurable<KmsConfig> for KmsCommand {
     fn config_path(&self) -> Option<PathBuf> {
         let config = match self {
             KmsCommand::Start(start) => start.config.as_ref(),
-            #[cfg(feature = "yubihsm")]
-            KmsCommand::Yubihsm(yubihsm) => yubihsm.config_path(),
-            #[cfg(feature = "ledger")]
-            KmsCommand::Ledger(ledger) => ledger.config_path(),
             _ => return None,
         };
 

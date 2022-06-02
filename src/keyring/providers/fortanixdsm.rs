@@ -6,7 +6,7 @@ use crate::{
     config::provider::KeyType,
     error::{Error, ErrorKind::*},
     keyring::{self, SigningProvider},
-    prelude::*,
+    prelude::*, fortanixdsm_req::PluginSigningKey
 };
 use ed25519_dalek::{Signature as Ed25519Signature, Signer};
 use elliptic_curve::pkcs8::{
@@ -18,7 +18,8 @@ use sdkms::api_model::{
     DigestAlgorithm, EllipticCurve, ObjectType, SignRequest, SignResponse, SobjectDescriptor,
 };
 use sdkms::{Error as SdkmsError, SdkmsClient};
-use std::sync::Arc;
+use uuid::Uuid;
+use std::{sync::Arc, str::FromStr};
 use tendermint::public_key::{Ed25519, Secp256k1};
 use tendermint::{PublicKey, TendermintKey};
 use url::Url;
@@ -144,7 +145,6 @@ impl SigningKey {
             public_key,
         ))
     }
-
     fn sign(&self, msg: &[u8], hash_alg: DigestAlgorithm) -> Result<SignResponse, SignError> {
         let req = SignRequest {
             key: Some(self.descriptor.clone()),
@@ -174,13 +174,19 @@ impl Signer<Ed25519Signature> for SigningKey {
     }
 }
 
+
+
 fn add_key(
     registry: &mut chain::Registry,
     config: &SigningKeyConfig,
     client: Arc<SdkmsClient>,
 ) -> Result<(), Error> {
+    let kms_config = APP.config();
+    let fortanix_config = kms_config.providers.clone();
+    let plugin_id = Uuid::from_str( &fortanix_config.fortanixdsm[0].plugin_id.as_ref().unwrap()).expect("valid uuid");
     let (signing_key, public_key) =
-        SigningKey::new(client, config.key.clone(), config.key_type.clone())?;
+        SigningKey::new(client.clone(), config.key.clone(), config.key_type.clone())?;
+    let plugin_signing_key = PluginSigningKey::new(client.clone(), plugin_id)?;
 
     match config.key_type {
         KeyType::Account => {
@@ -198,6 +204,7 @@ fn add_key(
                 SigningProvider::FortanixDsm,
                 public_key,
                 Box::new(signing_key),
+                Box::new(plugin_signing_key)
             );
             for chain_id in &config.chain_ids {
                 registry.add_consensus_key(chain_id, signer.clone())?;

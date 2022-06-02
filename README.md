@@ -1,215 +1,100 @@
-# Tendermint KMS 🔐
+# Ignite One-time Signer Shim
+version 1.0
 
-[![Crate][crate-image]][crate-link]
-[![Build Status][build-image]][build-link]
-[![Apache 2.0 Licensed][license-image]][license-link]
-![MSRV][rustc-image]
+## Short Description
+The Ignite One Time Signer shim acts as translational layer between your Tendermint validators and the Ignite One Time Signer Plugin. It handles RPC communication from the validator node and relays it to plugin using REST API's.
 
-Key Management System for [Tendermint] applications such as
+This is a fork of [Tendermint KMS](https://github.com/iqlusioninc/tmkms), Key Management System for [Tendermint] applications such as
 [Cosmos Validators].
 
-Provides isolated, optionally HSM-backed signing key management for Tendermint
-applications including validators, oracles, IBC relayers, and other transaction
-signing applications.
-
-## About
-
-This repository contains `tmkms`, a key management service intended to be deployed
-in conjunction with [Tendermint] applications (ideally on separate physical hosts)
-which provides the following:
-
-- **High-availability** access to validator signing keys
-- **Double-signing** prevention even in the event the validator process is compromised
-- **Hardware security module** storage for validator keys which can survive host compromise
-
-## Status
-
-Tendermint KMS is currently *beta quality*. It has undergone one security audit
-with only one low-severity finding.
-
-### Double Signing / High Availability
-
-Tendermint KMS implements *beta quality* double signing detection.
-It has undergone some testing, however we do not (yet) recommend using the KMS
-in conjunction with multiple simultaneously active validators on the same
-network for prolonged periods of time.
-
-In particular, there is presently **no double signing defense** in the case
-that multiple KMS instances are running simultaneously and connecting to
-multiple validators on the same network.
-
-## Signing Providers
-
-You **MUST** select one or more signing provider(s) when compiling the KMS,
-passed as the argument to the `--features` flag (see below for more
-instructions on how to build Tendermint KMS).
-
-The following signing backend providers are presently supported:
-
-#### Hardware Security Modules (recommended)
-- [FortanixDSM](./README.fortanixdsm.md) (gated under the `fortanixdsm` cargo feature. See [README.fortanixdsm.md](./README.fortanixdsm.md) 
-- [YubiHSM2] (gated under the `yubihsm` cargo feature. See [README.yubihsm.md][yubihsm2] for more info)
-- [Ledger] (gated under the `ledger` cargo feature)
-
-#### Software-Only (not recommended)
-
-- `softsign` backend which uses [ed25519-dalek]
-
-## Supported Platforms
-
-`tmkms` should build on any [supported Rust platform] which is also supported
-by [libusb], however there are some platforms which meet those criteria which
-are unsuitable for cryptography purposes due to lack of constant-time CPU
-instructions. Below are some of the available tier 1, 2, and 3 Rust platforms
-which meet our minimum criteria for KMS use.
-
-NOTE: `tmkms` is presently tested on Linux/x86_64. We don't otherwise guarantee
-support for any of the platforms below, but they theoretically meet the necessary
-prerequisites for support.
-
-### Operating Systems
-
-- Linux (recommended)
-- FreeBSD
-- NetBSD
-- OpenBSD
-- macOS
-
-### CPU Architectures
-
-- `x86_64` (recommended)
-- `arm` (32-bit ARM)
-- `aarch64` (64-bit ARM)
-- `riscv32` (32-bit RISC-V)
-- `riscv64` (64-bit RISC-V)
-
-## Installation
-
-You will need the following prerequisites:
-
-- **Rust** (stable; **1.56+**): https://rustup.rs/
-- **C compiler**: e.g. gcc, clang
-- **pkg-config**
-- **libusb** (1.0+). Install instructions for common platforms:
-  - Debian/Ubuntu: `apt install libusb-1.0-0-dev`
-  - RedHat/CentOS: `yum install libusb1-devel`
-  - macOS (Homebrew): `brew install libusb`
-
-NOTE (x86_64 only): Configure `RUSTFLAGS` environment variable:
-`export RUSTFLAGS=-Ctarget-feature=+aes,+ssse3`
-
-There are two ways to install `tmkms`: either compiling the source code after
-cloning it from git, or using Rust's `cargo install` command.
-
-### Compiling from source code (via git)
-
-`tmkms` can be compiled directly from the git repository source code using the
+## Production Fortanix DSM setup
+`shim` can be compiled directly from the git repository source code using the
 following method.
 
-The following example adds `--features=yubihsm` to enable YubiHSM 2 support.
-
 ```
-$ git clone https://github.com/iqlusioninc/tmkms.git && cd tmkms
+$ git clone <GITHUB_REPO_URL> && cd <CLONED FOLDER>
 [...]
-$ cargo build --release --features=yubihsm
+$ cargo build --release --features=fortanixdsm
 ```
 
-Alternatively, substitute `--features=ledger` to enable Ledger support.
+If successful, this will produce a `shim` executable located at
+`./target/release/shim`
 
-If successful, this will produce a `tmkms` executable located at
-`./target/release/tmkms`
 
-### Installing with the `cargo install` command
+### Shim setup
 
-With Rust (1.56+) installed, you can install tmkms with the following:
+In order to perform setup, `shim` needs a  configuration file which
+contains the authentication details needed to authenticate to the DSM with an API key.
 
-```
-cargo install tmkms --features=yubihsm
-```
+This configuration should be placed in a file called: `shim.toml`.
+You can specifty the path to the config with either `-c /path/to/shim.toml` or else shim will look in the current working directory for the same file.
 
-Or to install a specific version (recommended):
 
-```
-cargo install tmkms --features=yubihsm --version=0.4.0
-```
 
-Alternatively, substitute `--features=ledger` to enable Ledger support.
 
-## Configuration: `tmkms init`
-
-The `tmkms init` command can be used to generate a directory containing
+The `shim init` command can be used to generate a directory containing
 the configuration files needed to run the KMS. Run the following:
 
 ```
-$ tmkms init /path/to/kms/home
+$ shim init /path/to/kms/home
 ```
 
-This will output a `tmkms.toml` file, a `kms-identity.key` (used to authenticate
+This will output a `shim.toml` file, a `kms-identity.key` (used to authenticate
 the KMS to the validator), and create `secrets` and `state` subdirectories.
 
-Please look through `tmkms.toml` after it's generated, as various sections
+Please look through `shim.toml` after it's generated, as various sections
 will require some customization.
 
-The `tmkms init` command also accepts a `-n` or `--networks` argument which can
-be used to specify certain well-known Tendermint chains to initialize:
+
+example Toml file : 
 
 ```
-$ tmkms init -n cosmoshub,irishub,columbus /path/to/kms/home
+# shim configuration file
+
+## Chain Configuration
+
+### Cosmos Hub Network
+
+[[chain]]
+id = "cosmoshub-3"
+key_format = { type = "cosmos-json" }
+
+## Signing Provider Configuration
+
+### Fortanix DSM Signer Configuration
+
+[[providers.fortanixdsm]]
+api_endpoint = "https://sdkms.fortanix.com"
+api_key = "Nzk5MDQ3ZGUtN2Q2NS00OTRjLTgzMDMtNjQwMTlhYzdmOGUzOlF1SU93ZXJsOFU4VUdEWEdQMmx1dFJOVjlvMTRSd3lhNnVABCNhVkpZOVhzYVgyc0pOVGRQVGJ0RjZJdmVLMy00X05iTEhxMkowamF3UGVPaXJEWEd3"
+signing_keys = [
+    { chain_ids = ["cosmoshub-3"], type = "consensus", key_id = "72e9ed9e-9eb4-46bd-a135-e78ed9bfd611" },
+]
+plugin_id="81ce0bfb-3bd8-4214-bed6-b4257f2b9938"
+
+## Validator Configuration
+
+[[validator]]
+chain_id = "cosmoshub-3"
+addr = "tcp://127.0.0.1:26659"
+secret_key = <path to secrete key> # Autogen from shim init
+protocol_version = "legacy"# Autogen from shim init
+reconnect = true # Autogen from shim init
+```
+## Running Shim
+
+Validator must be configured to use remote signing with address as in shim.toml. After creading the configuration, start `shim` with the following:
+
+```
+$ shim start
 ```
 
-## Running: `tmkms start`
-
-After creading the configuration, start `tmkms` with the following:
-
-```
-$ tmkms start
-```
-
-This will read the configuration from the `tmkms.toml` file in the current
+This will read the configuration from the `shim.toml` file in the current
 working directory.
 
 To explicitly specify the path to the configuration, use the `-c` flag:
 
 ```
-$ tmkms start -c /path/to/tmkms.toml
-```
-
-## Development
-
-The following are instructions for setting up a development environment.
-They assume you've already followed steps 1 & 2 from the Installation
-section above.
-
-- Install **rustfmt**: `rustup component add rustfmt`
-- Install **clippy**: `rustup component add clippy`
-
-Alternatively, you can build a Docker image from the [Dockerfile] in the top
-level of the repository, which is what is used to run tests in CI.
-
-Before opening a pull request, please run the checks below:
-
-### Testing
-
-Run the test suite with:
-
-```
-cargo test --all-features -- --test-threads 1
-```
-
-### Format checking (rustfmt)
-
-Make sure your code is well-formatted by running:
-
-```
-cargo fmt
-```
-
-### Lint (clippy)
-
-Lint your code (i.e. check it for common issues) with:
-
-```
-cargo clippy
+$ shim start -c /path/to/shim.toml
 ```
 
 ## License
@@ -226,23 +111,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-[//]: # (badges)
-
-[crate-image]: https://img.shields.io/crates/v/tmkms.svg
-[crate-link]: https://crates.io/crates/tmkms
-[build-image]: https://github.com/iqlusioninc/tmkms/workflows/CI/badge.svg?branch=main&event=push
-[build-link]: https://github.com/iqlusioninc/tmkms/actions
-[license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
-[license-link]: https://github.com/iqlusioninc/tmkms/blob/main/LICENSE
-[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
-
 [//]: # (general links)
 
 [Tendermint]: https://tendermint.com/
-[Cosmos Validators]: https://cosmos.network/docs/gaia/validators/validator-faq.html
-[YubiHSM2]: https://github.com/iqlusioninc/tmkms/blob/main/README.yubihsm.md
-[Ledger]: https://www.ledger.com/
-[ed25519-dalek]: https://github.com/dalek-cryptography/ed25519-dalek
-[supported Rust platform]: https://forge.rust-lang.org/platform-support.html
-[libusb]: https://libusb.info/
-[Dockerfile]: https://github.com/iqlusioninc/tmkms/blob/main/Dockerfile
+[Cosmos Validators]: https://cosmos.network/docs/gaia/

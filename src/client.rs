@@ -92,7 +92,7 @@ pub fn register_chain(chain_id: &chain::Id) {
     debug!("registering chain: {}", chain_id);
     registry.get_chain(chain_id).unwrap_or_else(|| {
         status_err!(
-            "unregistered chain: {} (add it to tmkms.toml's [[chain]] section)",
+            "unregistered chain: {} (add it to shim.toml's [[chain]] section)",
             chain_id
         );
         exit(1);

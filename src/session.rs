@@ -11,10 +11,11 @@ use crate::{
     prelude::*,
     rpc::{Request, Response},
 };
+
+use crate::fortanixdsm_req;
 use std::{fmt::Debug, os::unix::net::UnixStream, time::Instant};
 use tendermint::consensus;
 use tendermint_config::net;
-
 /// Encrypted session with a validator node
 pub struct Session {
     /// Validator configuration options
@@ -102,7 +103,6 @@ impl Session {
             "[{}@{}] received request: {:?}",
             &self.config.chain_id, &self.config.addr, &request
         );
-
         let response = match request {
             Request::SignProposal(req) => self.sign(req)?,
             Request::SignVote(req) => self.sign(req)?,
@@ -123,6 +123,7 @@ impl Session {
     }
 
     /// Perform a digital signature operation
+    #[allow(unused_mut)]
     fn sign<R>(&mut self, mut request: R) -> Result<Response, Error>
     where
         R: TendermintRequest + Debug,
@@ -131,8 +132,16 @@ impl Session {
             .validate()
             .map_err(|e| format_err!(SigningError, "failed to validate request: {}", e))?;
 
-        self.check_max_height(&mut request)?;
-
+        debug!(
+            "Request from RPC: {:?}", request
+        );
+        //Following commented section bypasses the double sign checker, this has been moved to Plugin
+        /*
+        if let Some(remote_err) = self.update_consensus_state(chain, &request)? {
+            // In the event of double signing we send a response to notify the validator
+            return Ok(request.build_response(Some(remote_err)));
+        }
+        */
         let registry = chain::REGISTRY.get();
 
         let chain = registry
@@ -140,12 +149,7 @@ impl Session {
             .unwrap_or_else(|| {
                 panic!("chain '{}' missing from registry!", &self.config.chain_id);
             });
-
-        if let Some(remote_err) = self.update_consensus_state(chain, &request)? {
-            // In the event of double signing we send a response to notify the validator
-            return Ok(request.build_response(Some(remote_err)));
-        }
-
+            
         let mut to_sign = vec![];
         request.sign_bytes(
             self.config.chain_id.clone(),
@@ -153,19 +157,22 @@ impl Session {
             &mut to_sign,
         )?;
 
+        let (msg_type, request_state) = parse_request(&request)?;
+        let req = fortanixdsm_req::PluginRequest::new(request_state, msg_type, &to_sign);
+
         let started_at = Instant::now();
-
         // TODO(ismail): figure out which key to use here instead of taking the only key
-        let signature = chain.keyring.sign_ed25519(None, &to_sign)?;
-
-        self.log_signing_request(&request, started_at).unwrap();
+        let sign_response = chain.keyring.sign_with_plugin(&req, None);
+        let signature = &sign_response?;       
+        
+        self.log_signing_request(&request, started_at)?;
         request.set_signature(&signature);
-
         Ok(request.build_response(None))
     }
 
     /// If a max block height is configured, ensure the block we're signing
     /// doesn't exceed it
+    #[allow(dead_code)]
     fn check_max_height<R>(&mut self, request: &mut R) -> Result<(), Error>
     where
         R: TendermintRequest + Debug,
@@ -188,6 +195,7 @@ impl Session {
 
     /// Update our local knowledge of the chain's consensus state, detecting
     /// attempted double signing and sending a response in the event it happens
+    #[allow(dead_code)]
     fn update_consensus_state<R>(
         &mut self,
         chain: &Chain,

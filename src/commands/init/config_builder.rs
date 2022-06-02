@@ -6,7 +6,7 @@ use std::{
     path::Path,
 };
 
-/// Header to place at the top of `tmkms.toml`
+/// Header to place at the top of `shim.toml`
 pub const KMS_CONFIG_HEADER: &str = "# Tendermint KMS configuration file";
 
 /// Configuration file builder
@@ -43,10 +43,6 @@ impl ConfigBuilder {
         self.add_chain_config();
         self.add_provider_config();
         self.add_validator_config();
-
-        #[cfg(feature = "tx-signer")]
-        self.add_tx_signer_config();
-
         self.contents
     }
 
@@ -74,17 +70,6 @@ impl ConfigBuilder {
     /// Add `[[provider]]` configuration (customized for enabled signing providers)
     fn add_provider_config(&mut self) {
         self.add_section_comment("Signing Provider Configuration");
-
-        #[cfg(feature = "yubihsm")]
-        self.add_yubihsm_provider_config();
-
-        #[cfg(feature = "ledger")]
-        self.add_ledgertm_provider_config();
-
-        #[cfg(feature = "softsign")]
-        self.add_softsign_provider_config();
-
-        #[cfg(feature = "fortanixdsm")]
         self.add_fortanixdsm_provider_config();
     }
 
@@ -94,86 +79,10 @@ impl ConfigBuilder {
         self.add_template_with_chain_id(include_str!("templates/validator.toml"));
     }
 
-    /// Add `[[tx_signer]]` configurations
-    #[cfg(feature = "tx-signer")]
-    fn add_tx_signer_config(&mut self) {
-        self.add_section_comment("Transaction Signer Configuration");
-
-        for network in self.networks.clone() {
-            self.add_str(&format_template(
-                include_str!("templates/tx_signer.toml"),
-                &[
-                    ("$KMS_HOME", self.kms_home.as_ref()),
-                    ("$CHAIN_ID", network.chain_id()),
-                    ("$SCHEMA", network.schema_file()),
-                ],
-            ));
-
-            self.add_str("\n\n");
-        }
-    }
-
-    /// Add `[[provider.yubihsm]]` configuration
-    #[cfg(feature = "yubihsm")]
-    fn add_yubihsm_provider_config(&mut self) {
-        self.add_str("### YubiHSM2 Provider Configuration\n\n");
-
-        self.add_str(&format_template(
-            include_str!("templates/keyring/yubihsm.toml"),
-            &[("$KMS_HOME", self.kms_home.as_ref())],
-        ));
-
-        self.add_str("\nkeys = [\n");
-
-        let mut key_id = 1;
-
-        #[allow(unused_mut)]
-        let mut key_types = vec!["consensus"];
-
-        #[cfg(feature = "tx-signer")]
-        key_types.push("account");
-
-        for network in self.networks.clone() {
-            for key_type in &key_types {
-                self.add_str(&format!(
-                    "    {{ key = {}, type = \"{}\", chain_ids = [\"{}\"] }}, \n",
-                    key_id,
-                    key_type,
-                    network.chain_id(),
-                ));
-
-                key_id += 1;
-            }
-        }
-
-        self.add_str("]\n");
-
-        #[cfg(feature = "yubihsm-server")]
-        self.add_str(include_str!("templates/keyring/yubihsm_server.toml"));
-
-        self.add_str("\n");
-    }
-
-    /// Add `[[provdier.ledgertm]]` configuration
-    #[cfg(feature = "ledger")]
-    fn add_ledgertm_provider_config(&mut self) {
-        self.add_str("### Ledger Provider Configuration\n\n");
-        self.add_template_with_chain_id(include_str!("templates/keyring/ledgertm.toml"));
-    }
-
-    /// Add `[[provider.softsign]]` configuration
-    #[cfg(feature = "softsign")]
-    fn add_softsign_provider_config(&mut self) {
-        self.add_str("### Software-based Signer Configuration\n\n");
-
-        self.add_template_with_chain_id(include_str!("templates/keyring/softsign_consensus.toml"));
-
-        #[cfg(feature = "tx-signer")]
-        self.add_template_with_chain_id(include_str!("templates/keyring/softsign_account.toml"));
-    }
+    
 
     /// Add `[[provider.fortanixdsm]]` configuration
-    #[cfg(feature = "fortanixdsm")]
+    
     fn add_fortanixdsm_provider_config(&mut self) {
         self.add_str("### Fortanix DSM Signer Configuration\n\n");
         self.add_template_with_chain_id(include_str!("templates/keyring/fortanixdsm.toml"));

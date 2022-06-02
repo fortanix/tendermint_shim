@@ -118,7 +118,6 @@ impl Runnable for InitCommand {
             secret_connection_key.display()
         );
 
-        // TODO(tarcieri): generate consensus and account keys when using softsign
     }
 }
 

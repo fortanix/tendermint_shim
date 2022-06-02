@@ -2,6 +2,6 @@
 api_endpoint = "https://sdkms.fortanix.com"
 api_key = "Nzk5MDQ3ZGUtN2Q2NS00OTRjLTgzMDMtNjQwMTlhYzdmOGUzOlF1SU93ZXJsOFU4VUdEWEdQMmx1dFJOVjlvMTRSd3lhNnVDNVNhVkpZOVhzYVgyc0pOVGRQVGJ0RjZJdmVLMy00X05iTEhxMkowamF3UGVPaXJEWEd3"
 signing_keys = [
-    { chain_ids = ["$CHAIN_ID"], type = "account", key_id = "72e9ed9e-9eb4-46bd-a135-e78ed9bfd611" },
-    { chain_ids = ["$CHAIN_ID"], type = "consensus", key_name = "My Key" },
+    { chain_ids = ["$CHAIN_ID"], type = "consensus", key_id = "72e9ed9e-9eb4-46bd-a135-e78ed9bfd611" },
 ]
+plugin_id="81ce0bfb-3bd8-4214-bed6-b4257f2b9938"

@@ -1,6 +1,6 @@
 //! Main entry point for the `tmkms` executable
 
-use tmkms::application::APP;
+use shim::application::APP;
 
 /// Boot the `tmkms` application
 fn main() {

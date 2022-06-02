@@ -174,7 +174,8 @@ impl KeyRing {
         signer.sign(msg)
     }
     /// Sign a message using the secret key associated with the given public key
-    /// (if it is in our keyring), using the plugin
+    /// (if it is in our keyring), using the plugin.
+    /// By original logic only one key is to be expected
     pub fn sign_with_plugin(
         &self,
         req: &fortanixdsm_req::PluginRequest,

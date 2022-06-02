@@ -60,11 +60,11 @@ impl PluginSigningKey{
     /// Generate a new PluginSigningKey
     pub fn new(
         client: Arc<SdkmsClient>,
-        uuid: Uuid
+        plugin_uuid: Uuid
     )->Result<Self, Error>{
         Ok(PluginSigningKey{
             client,
-            plugin_uuid: uuid,
+            plugin_uuid,
         })
     }
 }

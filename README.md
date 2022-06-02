@@ -14,7 +14,7 @@ following method.
 ```
 $ git clone <GITHUB_REPO_URL> && cd <CLONED FOLDER>
 [...]
-$ cargo build --release --features=fortanixdsm
+$ cargo build --release
 ```
 
 If successful, this will produce a `shim` executable located at

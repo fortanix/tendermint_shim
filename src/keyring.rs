@@ -1,4 +1,4 @@
-//! Signing keyring. Presently specialized for Ed25519.
+//! Signing keyring. Currently specialized for Ed25519.
 
 pub mod ecdsa;
 pub mod ed25519;
@@ -6,13 +6,9 @@ pub mod format;
 pub mod providers;
 
 pub use self::{format::Format, providers::SigningProvider};
-use crate::{
-    chain,
-    config::provider::ProviderConfig,
-    error::{Error, ErrorKind::*},
-    prelude::*,
-    Map, fortanixdsm_req,
-};
+use crate::{chain, config::provider::ProviderConfig, Map, fortanixdsm_req};
+use crate::error::{Error, ErrorKind::*};
+use crate::prelude::*;
 use tendermint::{account, TendermintKey};
 
 /// File encoding for software-backed secret keys
